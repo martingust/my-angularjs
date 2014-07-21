@@ -101,8 +101,8 @@ describe("Scope", function () {
 
         });
 
-        it("may have watchers that omit the listener function", function(){
-           var watchFn = jasmine.createSpy().and.returnValue('something');
+        it("may have watchers that omit the listener function", function () {
+            var watchFn = jasmine.createSpy().and.returnValue('something');
             scope.$watch(watchFn);
 
             scope.$digest();
@@ -111,22 +111,26 @@ describe("Scope", function () {
 
         });
 
-        it("triggers chained watchers in the same digest", function(){
-           scope.name = 'Jane';
+        it("triggers chained watchers in the same digest", function () {
+            scope.name = 'Jane';
 
             scope.$watch(
-              function(scope){ return scope.nameUpper; },
-                function(newValue, oldValue, scope){
-                    if(newValue){
-                        scope.initial = newValue.substring(0,1) + '.';
+                function (scope) {
+                    return scope.nameUpper;
+                },
+                function (newValue, oldValue, scope) {
+                    if (newValue) {
+                        scope.initial = newValue.substring(0, 1) + '.';
                     }
                 }
             );
 
             scope.$watch(
-                function(scope){return scope.name; },
-                function(newValue, oldValue, scope){
-                    if(newValue){
+                function (scope) {
+                    return scope.name;
+                },
+                function (newValue, oldValue, scope) {
+                    if (newValue) {
                         scope.nameUpper = newValue.toUpperCase();
                     }
                 }
@@ -141,41 +145,47 @@ describe("Scope", function () {
 
         });
 
-        it("gives up on the watches after 10 iterations", function(){
+        it("gives up on the watches after 10 iterations", function () {
             scope.counterA = 0;
             scope.counterB = 0;
 
             scope.$watch(
-              function(scope){ return scope.counterA; },
-                function(newValue, oldValue, scope){
+                function (scope) {
+                    return scope.counterA;
+                },
+                function (newValue, oldValue, scope) {
                     scope.counterB++;
                 }
             );
 
             scope.$watch(
-                function(scope){ return scope.counterB; },
-                function(newValue, oldValue, scope){
+                function (scope) {
+                    return scope.counterB;
+                },
+                function (newValue, oldValue, scope) {
                     scope.counterA++;
                 }
             );
 
-            expect(function(){ scope.$digest(); }).toThrow();
+            expect(function () {
+                scope.$digest();
+            }).toThrow();
         });
 
-        it("end the digest when the last watch is clean", function(){
-           scope.array = _.range(100);
+        it("end the digest when the last watch is clean", function () {
+            scope.array = _.range(100);
             var watchExecutions = 0;
 
-            _.times(100, function(i){
-               scope.$watch(
-                 function(scope){
-                    watchExecutions++;
-                     return scope.array[i];
-                 },
-                  function(newValue, oldValue, scope){
+            _.times(100, function (i) {
+                scope.$watch(
+                    function (scope) {
+                        watchExecutions++;
+                        return scope.array[i];
+                    },
+                    function (newValue, oldValue, scope) {
 
-                  }
-               );
+                    }
+                );
             });
 
             scope.$digest();
@@ -185,6 +195,51 @@ describe("Scope", function () {
             scope.$digest();
             expect(watchExecutions).toBe(301);
 
+        });
+
+
+        it("does not end digest so that new watches are not run", function () {
+            scope.aValue = 'abc';
+            scope.counter = 0;
+
+            scope.$watch(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.$watch(
+                        function (scope) {
+                            return scope.aValue;
+                        },
+                        function (newValue, oldValue, scope) {
+                            return scope.counter++;
+                        }
+                    );
+                }
+            );
+
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+        });
+
+        it("compares based on value if enabled", function(){
+           scope.anArray = [1,2,3];
+            scope.counter = 0;
+
+            scope.$watch(
+                function(scope){ return scope.anArray;},
+                function(newValue, oldValue, scope){
+                    scope.counter++;
+                },
+                true
+            );
+
+            scope.digest();
+            expect(scope.counter).toBe(1);
+
+            scope.anArray.push(4);
+            scope.digest();
+            expect(scope.counter).toBe(2);
         });
 
     });
