@@ -3,6 +3,8 @@
 
 function Scope() {
     this.$$watchers = [];
+    this.$$lastDirtyWatch = null;
+    this.$$asyncQueue = [];
 }
 
 function initWatchVal() {
@@ -24,6 +26,10 @@ Scope.prototype.$digest = function () {
     var dirty;
     this.$$lastDirtyWatch = null;
     do {
+        while(this.$$asyncQueue.length){
+            var task = this.$$asyncQueue.shift();
+            task.scope.$eval(task.expression);
+        }
         dirty = this.$$digestOnce();
         if(dirty && !(ttl--)){
             throw "10 digest iteration reached";
@@ -37,9 +43,9 @@ Scope.prototype.$$digestOnce = function () {
     _.forEach(this.$$watchers, function (watcher) {
         newValue = watcher.watchFn(self);
         oldValue = watcher.last;
-        if (self.$$areEqual(newValue, oldValue, watcher.valueEq)) {
+        if (!self.$$areEqual(newValue, oldValue, watcher.valueEq)) {
             self.$$lastDirtyWatch = watcher;
-            watcher.last = newValue;
+            watcher.last = (watcher.valueEq ? _.cloneDeep(newValue) : newValue);
             watcher.listenerFn(newValue, (oldValue === initWatchVal ? newValue : oldValue), self);
             dirty = true;
         }else if(self.$$lastDirtyWatch === watcher){
@@ -53,8 +59,25 @@ Scope.prototype.$$areEqual = function(newValue, oldValue, valueEq){
     if(valueEq){
         return _.isEqual(newValue, oldValue);
     }else{
-        return newValue === oldValue;
+        return newValue === oldValue  ||
+            (typeof newValue === 'number' && typeof oldValue === 'number' && isNaN(newValue) && isNaN(oldValue));
     }
+};
+
+Scope.prototype.$eval = function(expr, local){
+    return expr(this, local);
+};
+
+Scope.prototype.$apply = function(expr){
+    try{
+        this.$eval(expr);
+    }finally{
+        this.$digest();
+    }
+};
+
+Scope.prototype.$evalAsync = function(expr){
+  this.$$asyncQueue.push({scope: this, expression: expr});
 };
 
 
