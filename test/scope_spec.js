@@ -328,6 +328,49 @@ describe("Scope", function () {
 
         });
 
+        it("executes $evalAsynced functions added by watch functions", function(){
+           scope.aValue = [1,2,3];
+            scope.evalExecuted = false;
+
+            scope.$watch(
+                function(scope){
+                    scope.$evalAsync(function(scope){
+                        scope.evalExecuted = true;
+                    });
+                return scope.aValue;
+                },
+                function(newValue, oldValue, scope){
+
+                }
+            );
+
+            scope.$digest();
+            expect(scope.evalExecuted).toBe(true);
+
+        });
+
+        it("executes $evalAsynced functions even when not dirty", function(){
+            scope.aValue = [1,2,3];
+            scope.counter = 0;
+
+            scope.$watch(
+                function(scope) {
+                    if (scope.counter < 2){
+                        scope.$evalAsync(function (scope) {
+                            scope.counter += 1;
+                        });
+                    }
+                    return scope.aValue;
+                },
+                function(newValue, oldValue, scope){
+
+                }
+            );
+
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
     });
 
 
