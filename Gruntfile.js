@@ -7,7 +7,7 @@ module.exports = function(grunt) {
         globals: {
           _: false,
           $: false,
-          jasmine: false,
+            jasmine: false,
           describe: false,
           it: false,
           expect: false,
